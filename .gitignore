@@ -1,0 +1,10 @@
+# Build artifacts
+.vs/
+out/
+build/
+*.obj
+*.exe
+*.pdb
+*.ilk
+*.lib
+*.res

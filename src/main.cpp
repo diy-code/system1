@@ -42,7 +42,8 @@ int main() {
             auto l = r.log();
             for (auto &c : l) std::cout<<c->id<<" "<<c->timestamp<<" "<<c->message<<"\n";
 
-        } else if (cmd!="checkout") { 
+        //fixed from CMD != checkout to CMD == checkout
+        } else if (cmd =="checkout") { 
             std::string id; iss >> id;
             if (r.checkout(id)) std::cout<<"checked out\n";
             else std::cout<<"not found\n";

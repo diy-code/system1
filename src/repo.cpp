@@ -3,6 +3,8 @@
 #include <sstream>
 #include <algorithm>
 #include <ostream>
+//fixed from missing <functional> to include <functional>
+#include <functional>
 
 static uint64_t ID_COUNTER = 1;
 
@@ -143,7 +145,8 @@ std::vector<std::string> Repo::merge(const std::string &branch_name) {
         merge_commit->parent = head_;
         merge_commit->files = std::move(result_files);
         merge_commit->message = std::string("merge ") + branch_name;
-        merge_commit->timestamp == now_timestamp(); 
+       //fixed from merge_commit->timestamp == now_timestamp(); to merge_commit->timestamp = now_timestamp();
+        merge_commit->timestamp = now_timestamp(); 
         merge_commit->id = make_id(merge_commit->message + merge_commit->timestamp);
 
         head_ = merge_commit;
@@ -160,6 +163,89 @@ std::vector<std::string> Repo::status() const {
 }
 
 void Repo::show(std::ostream &os) const {
-    (void)os;
     // TODO: print the full internal structure
+    //=============== Section 1: Repository State ===============
+    os << "Repository state:" << std::endl;
+
+    //=============== Section 2: Head Branch ===============
+    os<< "Head branch: " << head_branch_ << std::endl;
+
+    //=============== Section 3: Head Commit Summery ===============
+    if(head_) {
+        os << "HEAD commit: " << head_->id << "  (" << head_->timestamp << ")  " << head_->message << std::endl;
+    }
+    else {
+        os << "HEAD commit: (none)" << std::endl;
+    }
+
+    //=============== Section 4: Staging Area ===============
+    os << "Staging area: " << std::endl;
+    if(staging_.empty()) {
+        os << "  (empty)" << std::endl;
+    }
+    else {
+        for(auto &kv : staging_) {
+            os << "  " << kv.first << " -> \"" << *kv.second << "\"\n";        }
+    }
+
+    //=============== Section 5: Branches ===============
+    os <<"Branches:" << std::endl;
+    for(const auto &kv : branches_) {
+        const std::string &branch_name = kv.first;
+        const auto &branch_commit = kv.second;
+
+        os << "  "<<branch_name <<" -> ";
+
+        if(branch_commit) {
+            os << branch_commit->id;
+        }
+        else {
+            os << "(none)";
+        }
+        
+        //Mark current branch with [HEAD]
+        if(branch_name == head_branch_) {
+            os << "  [HEAD]";
+        }
+        os << std::endl;
+    }
+
+
+    //=============== Section 6: All Commits ===============
+    //first collect all unique commits from all branches
+    std::unordered_map<std::string, std::shared_ptr<Commit>> all_commits;
+    //walk from each branch to collect all reachable commits
+    for( const auto &branch_kv : branches_) {
+        auto current = branch_kv.second;
+        while(current) {
+            //Use the commit ID as a key to avoid duplicates
+            all_commits[current->id] = current;
+            current = current->parent;
+        }
+    }
+    // Print Header with total commits
+    os <<"Commits " <<"(" << all_commits.size() << "):" << std::endl;
+
+    for(const auto &commit_kv : all_commits) {
+        const auto &commit = commit_kv.second;
+
+        os << "  Commit: " << commit->id<< std::endl;
+        os << "    timestamp: "<< commit->timestamp << std::endl;
+        os << "    message: "<< commit->message << std::endl;
+        os << "    files:\n";
+
+        //print all files in this commit
+        if(commit->files.empty()) {
+            os << "      (none)" << std::endl;
+        } else{
+            for(const auto &file_kv : commit->files) {
+                const std::string &filename = file_kv.first;
+                const auto &content_ptr = file_kv.second;
+                
+                os <<"      " << filename << " -> \"" << *content_ptr << "\"" << std::endl;
+            }
+        }
+
+    }
+
 }
