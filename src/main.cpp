@@ -60,10 +60,12 @@ int main() {
 
         } else if (cmd=="merge") {
             std::string b; iss >> b;
-            auto conf = r.merge(b);
-            if (conf.empty()) std::cout<<"merge ok\n";
-            else std::cout<<"conflicts\n";
-
+            auto result = r.merge(b);
+            //fixed from if (!result) std::cout<<"branch not found or no commits\n";
+            if (!result) std::cout<<"branch not found or no commits\n";
+            else if (result->empty()) std::cout<<"merge ok\n";
+            else std::cout<<"conflicts\n";           
+            
         } else if (cmd=="status") {
             auto s = r.status();
             for (auto &x: s) std::cout<<x<<"\n";

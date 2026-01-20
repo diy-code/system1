@@ -98,13 +98,15 @@ bool Repo::checkout_branch(const std::string &name) {
     return true;
 }
 
-std::vector<std::string> Repo::merge(const std::string &branch_name) {
-    std::vector<std::string> conflicts;
+std::optional<std::vector<std::string>> Repo::merge(const std::string &branch_name) {    std::vector<std::string> conflicts;
     auto it = branches_.find(branch_name);
-    if (it == branches_.end()) return conflicts;
+
+    //if the branch is not found, return nullopt
+    if (it == branches_.end()) return std::nullopt;
+
 
     auto other = it->second;
-    if (!other) return conflicts;
+    if (!other) return std::nullopt;
 
     std::unordered_map<std::string, std::shared_ptr<Commit>> seen;
     for (auto n = head_; n; n = n->parent) seen[n->id] = n;

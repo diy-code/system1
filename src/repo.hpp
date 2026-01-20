@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <iosfwd>
+#include <optional>
 #include "storage.hpp"
 
 struct Commit {
@@ -26,7 +27,7 @@ public:
     void branch(const std::string &name);
     bool checkout_branch(const std::string &name);
 
-    std::vector<std::string> merge(const std::string &branch_name);
+    std::optional<std::vector<std::string>> merge(const std::string &branch_name);
     std::vector<std::string> status() const;
 
     // NEW FUNCTION (candidate must implement it in repo.cpp)
