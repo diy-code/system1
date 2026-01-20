@@ -37,6 +37,15 @@ public:
 private:
     std::shared_ptr<Commit> make_commit_node(const std::string &message, std::shared_ptr<Commit> parent);
     std::string make_id(const std::string &s) const;
+    
+    // Helper methods for show() 
+    void print_header(std::ostream& os) const;
+    void print_staging_area(std::ostream& os) const;
+    void print_branches(std::ostream& os) const;
+    void print_all_commits(std::ostream& os) const;
+    void print_commit(std::ostream& os, const std::shared_ptr<Commit>& commit) const;
+    std::vector<std::shared_ptr<Commit>> collect_all_commits() const;
+
 
 private:
     ContentStore store_;

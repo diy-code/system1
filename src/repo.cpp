@@ -162,90 +162,107 @@ std::vector<std::string> Repo::status() const {
     return out;
 }
 
-void Repo::show(std::ostream &os) const {
-    // TODO: print the full internal structure
-    //=============== Section 1: Repository State ===============
-    os << "Repository state:" << std::endl;
+void Repo::show(std::ostream& os) const {
+    print_header(os);
+    print_staging_area(os);
+    print_branches(os);
+    print_all_commits(os);
+}
 
-    //=============== Section 2: Head Branch ===============
-    os<< "Head branch: " << head_branch_ << std::endl;
 
-    //=============== Section 3: Head Commit Summery ===============
-    if(head_) {
-        os << "HEAD commit: " << head_->id << "  (" << head_->timestamp << ")  " << head_->message << std::endl;
+void Repo::print_header(std::ostream& os) const {
+    os << "Repository state:\n"
+        << "Head branch: " << head_branch_ << "\n"
+        << "HEAD commit: ";
+
+    if (head_) {
+        os << head_->id << "  (" << head_->timestamp << ")  "<< head_->message << "\n";
     }
     else {
-        os << "HEAD commit: (none)" << std::endl;
+        os << "(none)\n";
+    }
+}
+
+void Repo::print_staging_area(std::ostream& os) const {
+    os << "Staging area:\n";
+
+    if (staging_.empty()) {
+        os << "  (empty)\n";
+        return;
     }
 
-    //=============== Section 4: Staging Area ===============
-    os << "Staging area: " << std::endl;
-    if(staging_.empty()) {
-        os << "  (empty)" << std::endl;
+
+    for (const auto& [filename, content] : staging_) {
+        os << "  " << filename << " -> \"" << *content << "\"\n";
     }
-    else {
-        for(auto &kv : staging_) {
-            os << "  " << kv.first << " -> \"" << *kv.second << "\"\n";        }
-    }
+}
 
-    //=============== Section 5: Branches ===============
-    os <<"Branches:" << std::endl;
-    for(const auto &kv : branches_) {
-        const std::string &branch_name = kv.first;
-        const auto &branch_commit = kv.second;
+void Repo::print_branches(std::ostream& os) const {
+    os << "Branches:\n";
 
-        os << "  "<<branch_name <<" -> ";
+    
+    //print all branches
+    for (const auto& [branch_name, branch_commit] : branches_) {
+        os << "  " << branch_name << " -> ";
 
-        if(branch_commit) {
+        if (branch_commit) {
             os << branch_commit->id;
         }
         else {
             os << "(none)";
         }
-        
-        //Mark current branch with [HEAD]
-        if(branch_name == head_branch_) {
+
+        if (branch_name == head_branch_) {
             os << "  [HEAD]";
         }
-        os << std::endl;
+        os << "\n";
     }
-
-
-    //=============== Section 6: All Commits ===============
-    //first collect all unique commits from all branches
-    std::unordered_map<std::string, std::shared_ptr<Commit>> all_commits;
-    //walk from each branch to collect all reachable commits
-    for( const auto &branch_kv : branches_) {
-        auto current = branch_kv.second;
-        while(current) {
-            //Use the commit ID as a key to avoid duplicates
-            all_commits[current->id] = current;
-            current = current->parent;
-        }
-    }
-    // Print Header with total commits
-    os <<"Commits " <<"(" << all_commits.size() << "):" << std::endl;
-
-    for(const auto &commit_kv : all_commits) {
-        const auto &commit = commit_kv.second;
-
-        os << "  Commit: " << commit->id<< std::endl;
-        os << "    timestamp: "<< commit->timestamp << std::endl;
-        os << "    message: "<< commit->message << std::endl;
-        os << "    files:\n";
-
-        //print all files in this commit
-        if(commit->files.empty()) {
-            os << "      (none)" << std::endl;
-        } else{
-            for(const auto &file_kv : commit->files) {
-                const std::string &filename = file_kv.first;
-                const auto &content_ptr = file_kv.second;
-                
-                os <<"      " << filename << " -> \"" << *content_ptr << "\"" << std::endl;
-            }
-        }
-
-    }
-
 }
+
+void Repo::print_all_commits(std::ostream& os) const {
+    auto all_commits = collect_all_commits();
+
+    os << "Commits (" << all_commits.size() << "):\n";
+
+    for (const auto& commit : all_commits) {
+        print_commit(os, commit);
+    }
+}
+
+std::vector<std::shared_ptr<Commit>> Repo::collect_all_commits() const {
+    std::unordered_map<std::string, std::shared_ptr<Commit>> unique_commits;
+
+    // Collect all reachable commits from all branches
+    for (const auto& [_, branch_commit] : branches_) {
+        for (auto current = branch_commit; current; current = current->parent) {
+            unique_commits[current->id] = current;
+        }
+    }
+
+    // Convert to vector and return
+    std::vector<std::shared_ptr<Commit>> result;
+    result.reserve(unique_commits.size());
+    for (const auto& [_, commit] : unique_commits) {
+        result.push_back(commit);
+    }
+
+    return result;
+}
+
+void Repo::print_commit(std::ostream& os, const std::shared_ptr<Commit>& commit) const {
+    os << "  Commit: " << commit->id << "\n"
+        << "    timestamp: " << commit->timestamp << "\n"
+        << "    message: " << commit->message << "\n"
+        << "    files:\n";
+
+    if (commit->files.empty()) {
+        os << "      (none)\n";
+        return;
+    }
+
+    //print all files in this commit
+    for (const auto& [filename, content] : commit->files) {
+        os << "      " << filename << " -> \"" << *content << "\"\n";
+    }
+}
+
